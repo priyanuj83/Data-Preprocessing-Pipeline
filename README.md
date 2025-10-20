@@ -4,7 +4,7 @@ A production-ready, hybrid pipeline that intelligently extracts questions from P
 
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-5.1.0-orange.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.2.0-orange.svg)](CHANGELOG.md)
 
 ---
 
@@ -66,13 +66,14 @@ Scanned PDFs    → Mistral OCR (accurate) → GPT-4 Vision → Structured JSON
 
 ### LaTeX Reconstruction (Optional Feature)
 
-**NEW in v5.0:** Transform PDFs into editable, compilable LaTeX documents!
+**Enhanced in v5.2.0:** Advanced PDF to LaTeX conversion with superior image handling!
 
 - **AI-Powered**: GPT-4 Vision analyzes layout and generates LaTeX
-- **Smart Layout**: Understands document structure visually
-- **No Regex**: Pure AI approach (no brittle pattern matching)
-- **Automatic Spacing Fixes**: Prevents overlapping text in headers
-- **Image Handling**: Extracts and references images correctly
+- **Docling Integration**: Advanced image extraction for complex layouts
+- **Smart Image Classification**: Distinguishes tables vs complex diagrams
+- **Enhanced DPI**: 300 DPI for superior visual analysis
+- **Visual Content Detection**: Identifies missing visual elements
+- **Generalized Prompts**: Works with any question paper format
 - **Multiple Outputs**: JSON, Markdown, LaTeX source, compiled PDF
 
 **Use Cases:**
@@ -124,6 +125,7 @@ pip install -r requirements.txt
 - `openai>=1.3.0` - GPT-4 Vision API
 - `mistralai>=1.0.0` - Mistral Pixtral OCR API
 - `PyMuPDF>=1.23.0` - PDF text and image extraction
+- `docling>=1.0.0` - Advanced image extraction for complex layouts
 - `python-docx>=1.0.0` - DOCX file reading
 - `python-dotenv>=1.0.0` - Environment variable management
 - `Pillow>=10.0.0` - Image processing
@@ -300,6 +302,26 @@ Output/output_api/
 
 **For critical documents:** Review and manually adjust the generated `.tex` file.
 
+#### Advanced Features
+
+**Image Metadata & Positioning:**
+- Independent `{document}_images.json` files with detailed image metadata
+- Bounding box coordinates and positioning data
+- Automatic image classification (content vs header/logo)
+- Smart background removal for extracted images
+
+**Visual Content Detection:**
+- GPT-4V identifies missing visual elements in original PDF
+- Comprehensive visual gap analysis
+- Detailed descriptions of missing content
+- Integration with LaTeX generation process
+
+**Modular Architecture:**
+- `DoclingImageExtractor`: Advanced image extraction for complex layouts
+- `PositioningExtractor`: PDF positioning data extraction
+- `SmartLaTeXReconstructor`: AI-first LaTeX generation
+- Fallback mechanisms for robust operation
+
 ---
 
 ## Pipeline Workflow
@@ -361,7 +383,7 @@ Output/output_api/
        │
        ▼
 ┌──────────────┐
-│ PDF → Images │ (High-res)
+│ PDF → Images │ (300 DPI for GPT-4V)
 └──────┬───────┘
        │
        ▼
@@ -370,16 +392,17 @@ Output/output_api/
 └──────┬───────┘
        │
        ▼
-┌──────────────┐
-│ PyMuPDF      │ → Extract images
-└──────┬───────┘
+┌──────────────────────┐
+│  Docling Image       │ → Advanced image extraction
+│  Extractor           │   (Vector graphics, diagrams)
+└──────┬───────────────┘
        │
        ▼
 ┌──────────────────────┐
 │  GPT-4 Vision        │ → SEES layout, generates LaTeX
-│  - Visual analysis   │
-│  - Layout decisions  │
-│  - Smart choices     │
+│  - Visual analysis   │   - Visual content detection
+│  - Layout decisions  │   - Smart image classification
+│  - Smart choices     │   - Table vs diagram distinction
 └──────┬───────────────┘
        │
        ▼
@@ -389,7 +412,7 @@ Output/output_api/
        │
        ▼
 ┌──────────────┐
-│ LaTeX Output │ → .tex, .pdf, .md, .json
+│ LaTeX Output │ → .tex, .pdf, .md, .json, _images.json
 └──────────────┘
 ```
 
@@ -459,6 +482,37 @@ Output/output_api/
 | `quiz.tex` | Compilable LaTeX source |
 | `quiz.pdf` | Compiled PDF (optional) |
 | `quiz_assets/` | Extracted images |
+| `quiz_images.json` | **NEW**: Image metadata with positioning |
+
+### Image Metadata Format (NEW)
+
+**File:** `{document}_images.json`
+
+```json
+{
+  "total_images": 3,
+  "images": [
+    {
+      "filename": "page1_img1.png",
+      "page": 1,
+      "position_type": "content",
+      "bbox": {
+        "x1": 50.5, "y1": 30.2,
+        "x2": 250.8, "y2": 120.5
+      },
+      "dimensions": {
+        "width": 200.3, "height": 90.3
+      },
+      "path": ".../assets/page1_img1.png"
+    }
+  ]
+}
+```
+
+**Position Types:**
+- `"content"` - Main document content (diagrams, charts)
+- `"header/logo"` - Headers, logos, institutional branding
+- `"footer"` - Footer elements, page numbers
 
 ---
 
@@ -474,8 +528,9 @@ Data Preprocessing Pipeline/
 │   ├── document_readers.py             # PDF/DOCX/TXT readers
 │   ├── json_validator.py               # Schema validation
 │   ├── smart_latex_reconstructor.py    # AI-first LaTeX generation
-│   ├── hybrid_latex_reconstructor.py   # Coordinate-based LaTeX
-│   └── positioning_extractor.py        # PDF positioning data
+│   ├── docling_image_extractor.py      # Advanced image extraction
+│   ├── positioning_extractor.py        # PDF positioning data
+│   └── fallback_parser.py              # Regex-based fallback
 │
 ├── scripts/                            # Setup and utilities
 │   ├── setup_env.bat                   # Windows setup
@@ -485,13 +540,17 @@ Data Preprocessing Pipeline/
 ├── Dataset/                            # Input documents
 ├── Output/                             # Generated files
 │   ├── output_api/                     # AI-extracted results
-│   └── output_noapi/                   # Fallback results
-│
+│   ├── output_noapi/                   # Fallback results
+│   └── latex_reconstruction/           # LaTeX reconstruction outputs
+├── examples/                           # Usage examples
+│   └── example_usage.py                # Programmatic usage examples
 ├── main.py                             # CLI entry point
 ├── config.py                           # Configuration
 ├── requirements.txt                    # Dependencies
 ├── .env                                # API keys (create from template)
 ├── env.template                        # API key template
+├── IMAGE_POSITIONING_EXPLAINED.md      # Image positioning documentation
+├── IMPLEMENTATION_SUMMARY.md           # Technical implementation details
 ├── README.md                           # This file
 └── CHANGELOG.md                        # Version history
 ```
@@ -603,19 +662,46 @@ brew install --cask mactex
 python scripts/test_api_key.py
 ```
 
+### Additional Documentation
+
+**Technical Documentation:**
+- `IMAGE_POSITIONING_EXPLAINED.md` - Detailed image positioning and metadata
+- `IMPLEMENTATION_SUMMARY.md` - Technical implementation details
+- `examples/example_usage.py` - Programmatic usage examples
+
+**Configuration Files:**
+- `config.py` - All pipeline settings and schema definitions
+- `env.template` - API key configuration template
+- `requirements.txt` - Complete dependency list
+
+**Output Structure:**
+```
+Output/
+├── output_api/                    # AI-extracted results
+├── output_noapi/                  # Fallback parser results
+└── latex_reconstruction/         # LaTeX reconstruction outputs
+    ├── {document}_assets/        # Extracted images
+    ├── {document}.tex            # LaTeX source
+    ├── {document}.pdf            # Compiled PDF
+    ├── {document}.md             # Markdown text
+    └── {document}_images.json    # Image metadata
+```
+
 ---
 
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
-### Latest: v5.1.0 (October 16, 2025)
+### Latest: v5.2.0 (October 19, 2025)
 
-**LaTeX Reconstruction Improvements:**
-- ✅ **Automatic Spacing Fixes**: Prevents overlapping text in metadata
-- ✅ **Smart Background Removal**: Preserves logo text while removing black backgrounds
-- ✅ **Pure AI Mode**: 90-95% quality without regex post-processing
-- ✅ **Hybrid Mode Available**: Coordinate-based option (experimental)
+**Major LaTeX Reconstruction Enhancements:**
+- ✅ **Docling Integration**: Advanced image extraction for complex layouts
+- ✅ **Enhanced DPI Settings**: 300 DPI for GPT-4V analysis (50% improvement)
+- ✅ **Smart Image Classification**: Distinguishes tables vs complex diagrams
+- ✅ **Improved Layout Rules**: Better header placement and image alignment
+- ✅ **Generalized Prompts**: Document-agnostic instructions for any question paper
+- ✅ **Visual Content Detection**: GPT-4V identifies missing visual elements
 
 **Previous: v4.1.3 (October 13, 2025)**
 - 🛡️ **GPT-Controlled Boundary-Safe Chunking**: Questions never split mid-way
@@ -640,8 +726,8 @@ This project is provided as-is for educational and research purposes.
 
 ---
 
-**Version:** 5.1.0  
-**Last Updated:** October 16, 2025  
+**Version:** 5.2.0  
+**Last Updated:** October 19, 2025  
 **Python:** 3.8+  
 **License:** MIT
 
@@ -678,3 +764,48 @@ python main.py quiz.pdf --enable-latex --latex-compile
 ```
 
 **You have a production-ready system. Use it with confidence!** 🚀
+
+---
+
+## Advanced Components
+
+### Modular Architecture
+
+**Core Modules:**
+- `pipeline.py` - Main orchestrator with intelligent routing
+- `openai_extractor.py` - GPT-4 Vision integration with chunking
+- `mistral_ocr.py` - Mistral Pixtral OCR for scanned documents
+- `document_readers.py` - Multi-format document reading (PDF/DOCX/TXT)
+
+**LaTeX Reconstruction:**
+- `smart_latex_reconstructor.py` - AI-first LaTeX generation
+- `docling_image_extractor.py` - Advanced image extraction
+- `positioning_extractor.py` - PDF positioning data extraction
+
+**Supporting Modules:**
+- `json_validator.py` - Schema validation and normalization
+- `fallback_parser.py` - Regex-based fallback extraction
+
+### Key Features
+
+**Intelligent Quality Detection:**
+- Automatic document analysis
+- Smart OCR selection (PyMuPDF vs Mistral)
+- Cost-optimized processing
+
+**Advanced Image Handling:**
+- Docling integration for complex layouts
+- Smart background removal
+- Automatic image classification
+- Bounding box metadata extraction
+
+**Robust Fallback System:**
+- GPT-4 Vision → Mistral OCR → PyMuPDF → Regex parser
+- Graceful degradation at each level
+- No single point of failure
+
+**Comprehensive Output:**
+- 20+ fields per question
+- PDF positioning data
+- Key terms for substitution attacks
+- LaTeX reconstruction with metadata

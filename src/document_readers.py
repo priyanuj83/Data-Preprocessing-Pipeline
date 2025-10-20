@@ -206,7 +206,7 @@ def render_page_to_image(page, dpi: int = 300) -> bytes:
     
     Args:
         page: PyMuPDF page object
-        dpi: Resolution for rendering (default 300 for OCR quality)
+        dpi: Resolution for rendering (default 300 for OCR quality, 300+ recommended for GPT-4V)
         
     Returns:
         Image bytes (PNG format)
@@ -380,7 +380,7 @@ class PDFReader(DocumentReader):
         Render all PDF pages as images for OCR processing
         
         Args:
-            dpi: Resolution for rendering (default 300 for good OCR quality)
+            dpi: Resolution for rendering (default 300 for good OCR quality, 300+ recommended for GPT-4V)
             
         Returns:
             List of (page_number, image_bytes) tuples

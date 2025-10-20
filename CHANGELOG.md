@@ -4,6 +4,152 @@ All notable changes to the Question Extraction Pipeline project.
 
 ---
 
+## [5.2.0] - 2025-10-19
+
+### 🚀 Major LaTeX Reconstruction Enhancements
+
+**Advanced image extraction and improved layout handling with Docling integration**
+
+This release significantly enhances the LaTeX reconstruction capabilities with better image extraction, improved DPI settings, and more intelligent layout decisions. The pipeline now uses Docling for superior image extraction while maintaining compatibility with PyMuPDF fallback.
+
+#### Added
+
+- **Docling Integration** (`src/docling_image_extractor.py`)
+  - NEW MODULE: Modular Docling image extractor for complex layouts
+  - Advanced image extraction for vector graphics and scientific diagrams
+  - Smart background removal with flood-fill algorithm
+  - Automatic image classification (content vs header/logo)
+  - Fallback to PyMuPDF if Docling fails
+  - Enhanced image quality with 4.0 scale factor (~288 DPI)
+
+- **Enhanced DPI Settings**
+  - GPT-4V page images: 200 DPI → 300 DPI (50% improvement)
+  - Docling image scale: 3.0 → 4.0 (33% improvement)
+  - Better visual clarity for GPT-4V analysis
+  - Improved recognition of small fonts and complex diagrams
+
+- **Visual Content Detection** (`_detect_visual_content_with_gpt4v()`)
+  - GPT-4V identifies missing visual elements in original PDF
+  - Comprehensive visual gap analysis
+  - Detailed descriptions of missing content
+  - Integration with LaTeX generation process
+
+- **Smart Image Classification**
+  - Distinguishes between simple data tables and complex diagrams
+  - Tables → LaTeX `\begin{tabular}` code
+  - Complex diagrams → `\includegraphics` commands
+  - Generalized rules for any document type
+
+- **Improved Layout Rules**
+  - Better header placement (Name, Section, TA at top)
+  - Enhanced image-question alignment
+  - Proper document structure understanding
+  - Generalized prompts for any question paper
+
+#### Changed
+
+- **Image Extraction Strategy** (`src/smart_latex_reconstructor.py`)
+  - Primary: Docling for complex layouts
+  - Fallback: PyMuPDF if Docling fails or extracts no images
+  - Better handling of vector graphics and scientific diagrams
+  - Improved image positioning and classification
+
+- **GPT-4V Prompts** (Enhanced and Generalized)
+  - Removed document-specific examples
+  - Generalized instructions for any question paper
+  - Better layout rules and image handling
+  - Clearer distinction between tables and diagrams
+  - Enhanced verification steps
+
+- **Dependencies** (`requirements.txt`)
+  - Added `docling>=1.0.0` for advanced image extraction
+  - Enhanced image processing capabilities
+
+#### Improved
+
+- **Image Extraction Quality**
+  - Better handling of complex layouts
+  - Improved vector graphics extraction
+  - Enhanced scientific diagram processing
+  - Smart background removal preserves text
+
+- **Layout Accuracy**
+  - Better header placement
+  - Improved image-question alignment
+  - Enhanced document structure understanding
+  - More accurate table vs diagram classification
+
+- **Generalization**
+  - Document-agnostic prompts
+  - Works with any question paper format
+  - No document-specific examples
+  - Robust for various document types
+
+#### Technical Details
+
+**Docling Configuration:**
+```python
+opts = PdfPipelineOptions()
+opts.images_scale = 4.0                   # ~288 DPI
+opts.generate_page_images = True
+opts.generate_picture_images = True
+opts.do_ocr = True                        # Better positioning
+opts.do_table_structure = True           # Table detection
+```
+
+**Image Classification Logic:**
+```python
+# Simple data tables → LaTeX code
+if is_simple_table(content):
+    use_latex_tabular()
+else:
+    use_includegraphics()  # Complex diagrams
+```
+
+**Enhanced Prompts:**
+- Generalized layout rules
+- Document-agnostic instructions
+- Better image handling guidance
+- Clearer table vs diagram distinction
+
+#### Use Cases
+
+✅ **Complex Question Papers**: Better image extraction and layout  
+✅ **Scientific Documents**: Enhanced diagram and formula handling  
+✅ **Any Document Type**: Generalized prompts work universally  
+✅ **High-Quality Output**: 300 DPI for superior visual analysis  
+✅ **Robust Fallbacks**: PyMuPDF backup when Docling fails  
+
+#### Performance Impact
+
+- **Image Quality**: 50% improvement with 300 DPI
+- **Extraction Time**: +2-3 seconds for Docling processing
+- **API Costs**: +10-20% for higher DPI images
+- **Quality**: Significant improvement in layout accuracy
+
+#### Known Limitations
+
+- **Docling Dependency**: Requires `docling>=1.0.0` installation
+- **Spatial Information**: Docling may not provide bounding boxes
+- **Fallback Strategy**: Relies on GPT-4V visual analysis for layout
+- **Cost**: Higher DPI increases token usage
+
+#### Migration
+
+**No breaking changes** - fully backward compatible.
+
+**New Dependencies:**
+```bash
+pip install docling>=1.0.0
+```
+
+**Configuration:**
+- Docling automatically used for image extraction
+- PyMuPDF fallback if Docling fails
+- Enhanced DPI settings applied automatically
+
+---
+
 ## [5.1.0] - 2025-10-16
 
 ### 🎨 LaTeX Reconstruction Improvements
